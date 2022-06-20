@@ -1,0 +1,8 @@
+include synthmap/app/config.json
+include synthmap/log/config.json
+include synthmap/test/sample_data/project.ini
+include synthmap/test/sample_data/big_images.db
+include synthmap/test/sample_data/sample_big_images/*.jpg
+include synthmap/test/sample_data/sample_big_images/*.JPG
+include synthmap/test/sample_data/meshroom_big_images/sfm.json
+include synthmap/test/sample_data/meshroom_big_images/FeatureMatching/0.matches.txt

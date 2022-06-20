@@ -1,0 +1,22 @@
+{
+	"version": 1,
+	"disable_existing_loggers": false,
+	"formatters": {
+		"full": {
+			"style": "{",
+			"format": "{asctime}\t{levelname}\t{process}.{thread}\t{module}.{funcName}:\t{message}"}},
+	"handlers": {
+		"console": {
+			"class": "logging.StreamHandler",
+			"level": "DEBUG",
+			"formatter": "full",
+			"stream": "ext://sys.stdout"},
+		"file": {
+			"class": "logging.FileHandler",
+			"level": "DEBUG",
+			"formatter": "full",
+			"filename": "synthmap.log",
+			"encoding": "utf-8"}},
+	"root": {
+		"level": "DEBUG",
+		"handlers": ["file"]}}
