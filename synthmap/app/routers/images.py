@@ -2,24 +2,32 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
+from pydantic import BaseModel
 
 from synthmap.app.routers.entities import CreateEntity
 from synthmap.app.routers.utils import db_conn
 import synthmap.db.manager as db_man
+from synthmap.models.synthmap import Image
 from synthmap.projectManager import colmapParser
 
 
 imagerouter = APIRouter(prefix="/images", tags=["Images"])
 
 
-@imagerouter.get("/")
-def list_images():
+@imagerouter.get("/", response_model=List[Image])
+def list_images() -> List[Image]:
+    """Not Implemented. Returns all registered Images"""
     pass
 
 
-@imagerouter.get("/count")
-def count_images(db_path=Depends(db_conn)):
+class ImageCount(BaseModel):
+    image_count: int
+
+
+@imagerouter.get("/count", response_model=ImageCount)
+def count_images(db_path=Depends(db_conn)) -> ImageCount:
     """Returns the number of registered Images"""
+    print(f"DB_PATH {db_path}")
     with db_man.mk_conn(db_path, read_only=True) as db:
         return db_man.count_images(db)
 
@@ -51,6 +59,7 @@ def get_imageinfo(image_id: int, db_path=Depends(db_conn)):
 
 @imagerouter.delete("/{image_id}")
 def del_image(image_id: int):
+    """Not Implemented. Un-registers an image and all references to it."""
     pass
 
 
@@ -74,6 +83,7 @@ def register_image_entity_get(
     return RedirectResponse(f"/view/entities/{entity_id}")
 
 
+# TODO: directly use CreateEntity in fn args?
 @imagerouter.post("/{image_id}/entities", tags=["Entities"])
 def register_image_entity_post(
     image_id: int,

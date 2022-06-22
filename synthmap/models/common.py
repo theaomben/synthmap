@@ -5,7 +5,9 @@ from pydantic import HttpUrl, FileUrl, constr, BaseModel as PyBaseModel
 
 IPFSURI = NewType("IPFSURI", constr(regex=r"^ipfs://.+"))
 S3URI = NewType("S3URI", constr(regex=r"^s3://.+"))
-GenericURI = NewType("GenericURI", Union[HttpUrl, FileUrl, IPFSURI, S3URI])
+GenericURL = NewType("GenericURL", Union[HttpUrl, FileUrl, IPFSURI, S3URI])
+GenericURI = NewType("GenericURI", Union[HttpUrl, IPFSURI])
+MD5Hex = Union[constr(regex=r"^[A-F0-9]{32}$"), constr(regex=r"^[a-f0-9]{32}$")]
 
 
 class BaseModel(PyBaseModel):

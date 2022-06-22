@@ -48,7 +48,7 @@ def list_project_images(project_id: int, db_path=Depends(db_conn)):
 
 @projectrouter.put("/{project_id}")
 def update_project(project_id: int, project_data: db_man.CreateProject):
-    """Modify this Project's data"""
+    """Not implemented. Modify this Project's data"""
 
 
 @projectrouter.delete("/{project_id}")

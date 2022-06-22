@@ -59,16 +59,10 @@ def cli(ctx, db_path, db_read_only):
         """Synthmap
 This product includes software developed by Benoît Drumain & Contributors for the Theaomai Synthmap Project."""
     )
-    print(
-        os.path.join(os.path.expanduser("~"), ".synthmap", "main.db"),
-        "\\\\",
-        db_path,
-        "#",
-    )
     if not ctx.obj:
         ctx.obj = {}
     ctx.obj["db_path"] = db_path
-    log.info(f"Starting CLI on instance {db_path}")
+    log.debug(f"Starting CLI on instance {db_path}")
     if not os.path.exists(db_path) and os.path.isdir(Path(db_path).parent):
         db = db_man.mk_conn(db_path=db_path)
         db_man.setup_db(db)
@@ -123,10 +117,11 @@ def run_server(ctx):
     """Launches a uvicorn instance in a subprocess. Runs against the database in --db_path (default: ~/.synthmap/main.db)"""
     db_path = Path(ctx.obj["db_path"])
     log.info("Starting Synthmap Server on db_path")
-    p = Process(target=uvicorn.run, args=("app.main:app",))
+    p = Process(target=uvicorn.run, args=("synthmap.app.main:app",))
     p.start()
     log.info(f"Providing a server on {db_path}")
-    yield
+    while True:
+        time.sleep(2.5)
     p.terminate()
     p.join()
 

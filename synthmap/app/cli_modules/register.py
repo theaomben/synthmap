@@ -1,4 +1,5 @@
 from glob import glob
+import itertools
 import os
 
 import rich_click as click  # import click
@@ -43,6 +44,25 @@ def register(ctx, root_folder, exclude_folders):
 @click.pass_context
 def images(ctx):
     """Seeks all .JPG files under --root-folder"""
+    log.info(f"Seeking Images under {ctx.obj['register_root']}")
+    q_strings = [
+        os.path.join(ctx.obj["register_root"], "**", "*") + f".{ext}"
+        for ext in ["JPG", "jpg"]
+    ]
+    paths = list(
+        itertools.chain.from_iterable(
+            [glob(q_string, recursive=True) for q_string in q_strings]
+        )
+    )
+    count = 0
+    for path in paths:
+        for exclude in ctx.obj["exclude_folders"]:
+            if exclude in path:
+                continue
+        with db_man.mk_conn(ctx.obj["db_path"]) as db:
+            db_man.insert_image(db, path)
+            count += 1
+    log.info(f"Found {count} images under {ctx.obj['register_root']}")
 
 
 def seek_projects(ctx, filename, extractor_fn, model):

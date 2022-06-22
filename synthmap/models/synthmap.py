@@ -3,11 +3,11 @@
 import sqlite3
 from typing import Dict, List, NewType, Optional, Union
 
-from pydantic import validator, FilePath
+from pydantic import constr, validator, FilePath
 
-from models.alice import AliceProject
+from synthmap.models.alice import AliceProject
 from synthmap.models.colmap import ColmapProject
-from synthmap.models.common import BaseModel, IPFSURI, GenericURI
+from synthmap.models.common import BaseModel, IPFSURI, GenericURI, GenericURL, MD5Hex
 from synthmap.log.logger import getLogger
 
 
@@ -23,8 +23,8 @@ class CommonProject(BaseModel):
 
 class Image(BaseModel):
     id: int
-    md5: str
-    orig_uri: Optional[GenericURI]
+    md5: MD5Hex
+    orig_uri: Optional[GenericURL]
     orig_ipfs: Optional[IPFSURI]
 
 

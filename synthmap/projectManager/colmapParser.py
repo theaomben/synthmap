@@ -81,11 +81,17 @@ def get_proj_dirs(proj_path):
 
 
 def update_project_paths(project_path, database_path=None, image_path=None):
+    """Amends a Colmap project.ini to include the given paths.
+    Copies the original file with an additional ".bak" suffix before affecting changes."""
     print(project_path, database_path, image_path)
     if not database_path and not image_path:
         return None
     project_bak = project_path.with_suffix(project_path.suffix + ".bak")
-    shutil.move(project_path, project_bak)
+    # Don't overwrite the backup if it already exists, use it instead.
+    if not os.path.exists(project_bak):
+        shutil.move(project_path, project_bak)
+    else:
+        os.remove(project_path)
     with open(project_bak, "r") as fd_in:
         with open(project_path, "w") as fd_out:
             for line in fd_in.readlines():

@@ -12,7 +12,12 @@ from synthmap.log.logger import getLogger
 log = getLogger(__name__)
 
 app = FastAPI()
-app.state.db_path = os.environ.get("SYNTHMAP_DB_PATH")
+try:
+    app.state.db_path
+except AttributeError:
+    app.state.db_path = os.environ.get("SYNTHMAP_DB_PATH") or os.path.expanduser(
+        "~/.synthmap/main.db"
+    )
 
 # Serves the myriad files from a non-minified cljs compile
 # app.mount("/js", StaticFiles(directory="C:\\Code\\frontmap\\public\\js\\"), name="js")

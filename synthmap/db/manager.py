@@ -276,7 +276,7 @@ def insert_image(db: sqlite3.Connection, file_path: Path):
             "id"
         ]
         db.execute(stmt_add_file, [image_id, file_path])
-        log.info(f"Created Image #{image_id}")
+        log.debug(f"Created Image #{image_id}")
     else:
         image_id = image_id.get("id")
     return image_id
@@ -294,6 +294,7 @@ def list_images(db: sqlite3.Connection) -> List[synthmodels.Image]:
 
 
 def md5_to_filepath(db: sqlite3.Connection, md5):
+    """Returns the filepath associated to the given md5 hash."""
     stmt = """SELECT imageFiles.file_path AS file_path FROM imageFiles
     INNER JOIN Images ON imageFiles.image_id = Images.id
     WHERE Images.md5=?"""

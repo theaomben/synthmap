@@ -1,0 +1,8 @@
+build
+dist
+*.log
+*.egg-info
+pylint_*
+pytest_*
+**/__pycache__
+synthmap/test/sample_data
