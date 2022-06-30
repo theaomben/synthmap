@@ -50,8 +50,9 @@ git clone https://github.com/theaomben/synthmap.git
 cd synthmap
 python3 -m venv venv
 source venv/bin/activate OR (on windows) venv\Scripts\activate
-(venv) pip install -r requirements-3_10_4.txt
-(venv) uvicorn app.main:app --reload
+(venv) python -m pip install --upgrade pip build
+(venv) python -m build
+(venv) python -m pip install dist\synthmap-*.whl
 ...
 
 # Optional: Format, test and check the code for possible improvements

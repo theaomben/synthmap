@@ -1,3 +1,4 @@
+venv
 build
 dist
 *.log
@@ -5,4 +6,3 @@ dist
 pylint_*
 pytest_*
 **/__pycache__
-synthmap/test/sample_data
