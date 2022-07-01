@@ -31,9 +31,9 @@ def get_projectinfo(project_id: int, db_path=Depends(db_conn)):
     return project_info
 
 
-@projectrouter.get("/{project_id}/images", response_model=List[db_man.DBImage])
+@projectrouter.get("/{project_id}/images", response_model=List[synthmodels.ImageFile])
 def list_project_images(project_id: int, db_path=Depends(db_conn)):
-    """Returns a list of this Project's Images"""
+    """Returns a list of this Project's ImageFiles"""
     with db_man.mk_conn(db_path, read_only=True) as db:
         project_images = db_man.get_project_images(db, project_id)
     return project_images

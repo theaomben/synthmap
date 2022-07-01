@@ -44,7 +44,7 @@ def get_imageinfo(image_id: int, db_path=Depends(db_conn)):
     """Returns this Image's data, its Project's Data, and its Keypoints."""
     with db_man.mk_conn(db_path, read_only=True) as db:
         image_md5 = db.execute(
-            """SELECT md5 FROM Images WHERE id=?""", [image_id]
+            """SELECT md5 FROM imageFiles WHERE image_id=?""", [image_id]
         ).fetchone()["md5"]
         image_project_data = db_man.get_image_info(db, image_id)
         image_keypoints = colmapParser.list_image_keypoints(db, image_id)

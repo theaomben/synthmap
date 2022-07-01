@@ -57,16 +57,16 @@ class TestProjectManagement:
         for project in db_projects:
             assert synthmodels.CommonProject(**project)
 
-    # TODO: check for valid insertion?
     def test_W_projectImages(self, initialised_db):
         for project in db_man.list_projects(initialised_db):
             colmapParser.list_project_images(initialised_db, project["project_id"])
 
     def test_R_projectImages(self, initialised_db, expected_projectImages):
+        # TODO: clone db_man.get_project_images(initialised_db, 1) into expected_projBlabla
         images = db_man.get_project_images(initialised_db, 1)
         for image in images:
-            assert synthmodels.Image(**image)
-            assert image == expected_projectImages[image["id"] - 1]
+            assert synthmodels.ImageFile(**image)
+            assert image == expected_projectImages[image["image_id"] - 1]
 
     def test_R_projectInfo(self, initialised_db):
         for project in db_man.list_projects(initialised_db):

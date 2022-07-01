@@ -34,7 +34,7 @@ def view_single_image(image_id: int):
     template = env.get_template("image_view.html")
     with db_man.mk_conn(read_only=True) as db:
         image = db.execute(
-            """SELECT id, md5 FROM Images WHERE id=?""", [image_id]
+            """SELECT image_id, md5 FROM imageFiles WHERE image_id=?""", [image_id]
         ).fetchone()
         projects = db_man.get_image_projects(db, image_id)
         entities = db_man.get_image_entities(db, image_id)

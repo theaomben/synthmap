@@ -16,7 +16,10 @@ from pydantic import BaseModel, conint
 
 
 from synthmap.db.manager import mk_conn, insert_project, insert_image
+from synthmap.log.logger import getLogger
 
+
+log = getLogger(__name__)
 
 MAX_IMAGE_ID = 2**31 - 1
 
@@ -114,6 +117,7 @@ def find_projects(db, paths: List[Path] = list()):
     for i in projects:
         if not "label" in i:
             i["label"] = i["project_file"]
+        print("project data: ", i)
         insert_project(db, i)
     db.commit()
 

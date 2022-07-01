@@ -40,7 +40,6 @@ schemas = {
     "aliceprojects": """CREATE TABLE AliceProjects (project_id INTEGER PRIMARY KEY,
         file_path TEXT UNIQUE NOT NULL)""",
     "images": """CREATE TABLE Images (id INTEGER PRIMARY KEY,
-        md5 TEXT UNIQUE NOT NULL,
         orig_uri TEXT UNIQUE,
         orig_ipfs TEXT UNIQUE)""",
     "projectImages": """CREATE TABLE projectImages(image_id INT NOT NULL,
@@ -51,6 +50,7 @@ schemas = {
         UNIQUE(project_id, project_image_id))""",
     "imageFiles": """CREATE TABLE imageFiles(image_id INTEGER NOT NULL,
         file_path TEXT UNIQUE NOT NULL,
+        md5 TEXT UNIQUE NOT NULL,
         ipfs TEXT UNIQUE,
         w INT,
         h INT)""",
@@ -149,17 +149,11 @@ class DBProject(CreateProject):
     created: datetime
 
 
-class DBImage(BaseModel):
-    id: int
-    md5: str
-    ipfs: Optional[str]
-
-
 class InfoProject(BaseModel):
     project_data: DBProject  # errors!!!
     count_images: int
     count_entities: int
-    project_images: list  # List[DBImage]
+    project_images: list
     project_entities: list  # List[synthmodels.Entity]
 
 
@@ -183,9 +177,14 @@ def insert_project(db: sqlite3.Connection, project_data: CreateProject) -> None:
     VALUES (:project_id, :file_path)"""
     if isinstance(project_data, BaseModel):
         project_data = dict(project_data)
-    project_data["orig_uri"] = "file://" + str(project_data["file_path"])
+    if "file_path" in project_data:
+        # This is an AliceProject
+        project_data["orig_uri"] = "file://" + str(project_data["file_path"])
+    else:
+        # This is a ColmapProject
+        project_data["orig_uri"] = "file://" + str(project_data["project_file"])
     project_data["created"] = str(datetime.utcnow())
-    log.debug(f"Attempt project creation: {project_data['file_path']}")
+    log.debug(f"Attempt project creation: {project_data['orig_uri']}")
     db.execute(stmt_proj_insert, project_data)
     project_data["project_id"] = db.execute(
         """SELECT project_id FROM Projects
@@ -193,7 +192,7 @@ def insert_project(db: sqlite3.Connection, project_data: CreateProject) -> None:
         [project_data["orig_uri"]],
     ).fetchone()["project_id"]
     log.info(
-        f"Created project {project_data['project_id']} based on {project_data['file_path']}"
+        f"Created project {project_data['project_id']} based on {project_data['orig_uri']}"
     )
     if project_data["project_type"] == "colmap":
         db.execute(stmt_colmap_insert, project_data)
@@ -209,10 +208,13 @@ def list_projects(db: sqlite3.Connection) -> List[synthmodels.CommonProject]:
     return db.execute("""SELECT * FROM Projects""")
 
 
-def get_project_images(db: sqlite3.Connection, project_id: int):
-    """Returns all Image data associated to a Project from the passed db."""
-    stmt_proj_imgs = """SELECT Images.* FROM Images
-    INNER JOIN projectImages ON projectImages.image_id = Images.id
+def get_project_images(
+    db: sqlite3.Connection, project_id: int
+) -> List[synthmodels.ImageFile]:
+    """Returns all Image data associated to a Project from the passed db.
+    TODO: Results will be messed up with resized images pointing to the same image_id"""
+    stmt_proj_imgs = """SELECT imageFiles.* FROM imageFiles
+    INNER JOIN projectImages ON projectImages.image_id = imageFiles.image_id
     WHERE projectImages.project_id=?"""
     return list(db.execute(stmt_proj_imgs, [project_id]).fetchall())
 
@@ -261,21 +263,30 @@ def get_md5(fp: Path):
     return md5.hexdigest()
 
 
-def insert_image(db: sqlite3.Connection, file_path: Path):
+def insert_image(
+    db: sqlite3.Connection, file_path: Path, orig_uri: str = None, orig_ipfs: str = None
+) -> int:
     """Creates a new Image from <file_path> if it is not already registered in this database."""
     log.debug(f"Attempt to insert image {file_path}")
     md5 = get_md5(file_path)
     stmt_add_image = """INSERT OR IGNORE INTO Images
-    (md5) VALUES (?)"""
+    (orig_uri, orig_ipfs) VALUES (?, ?)"""
     stmt_add_file = """INSERT OR IGNORE INTO imageFiles
-    (image_id, file_path) VALUES (?, ?)"""
-    image_id = db.execute("SELECT id FROM Images WHERE md5=?", [md5]).fetchone()
+    (image_id, file_path, md5, ipfs, w, h) VALUES (?, ?, ?, ?, ?, ?)"""
+    image_id = db.execute(
+        """SELECT image_id FROM imageFiles WHERE md5=?""", [md5]
+    ).fetchone()
     if not image_id:
-        db.execute(stmt_add_image, [md5])
-        image_id = db.execute("SELECT id FROM Images WHERE md5=?", [md5]).fetchone()[
-            "id"
-        ]
-        db.execute(stmt_add_file, [image_id, file_path])
+        # Since we don't have a local md5 match, assume the file is original
+        if not orig_uri:
+            orig_uri = f"file://{file_path}"
+        db.execute(stmt_add_image, [orig_uri, orig_ipfs])
+        image_id = db.execute(
+            """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
+        ).fetchone()["id"]
+        # TODO: compute w & h with opencv à là cv2.imread('/path/to/image.png').shape
+        w, h = None, None
+        db.execute(stmt_add_file, [image_id, file_path, md5, orig_ipfs, w, h])
         log.debug(f"Created Image #{image_id}")
     else:
         image_id = image_id.get("id")
@@ -423,8 +434,8 @@ def list_entities(db: sqlite3.Connection) -> List[synthmodels.Entity]:
 
 def get_entity_images(db: sqlite3.Connection, entity_id: int):
     """Returns Images registered to this Entity."""
-    stmt = """SELECT id AS image_id, md5 FROM Images
-    INNER JOIN imageEntities ON imageEntities.image_id = Images.id
+    stmt = """SELECT imageFiles.image_id, md5 FROM imageFiles
+    INNER JOIN imageEntities ON imageEntities.image_id = imageFiles.image_id
     WHERE imageEntities.entity_id=?"""
     return db.execute(stmt, [entity_id]).fetchall()
 

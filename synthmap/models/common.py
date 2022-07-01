@@ -1,11 +1,12 @@
 from typing import NewType, Union
 
 import numpy as np
-from pydantic import HttpUrl, FileUrl, constr, BaseModel as PyBaseModel
+from pydantic import HttpUrl, constr, BaseModel as PyBaseModel
 
 IPFSURI = NewType("IPFSURI", constr(regex=r"^ipfs://.+"))
 S3URI = NewType("S3URI", constr(regex=r"^s3://.+"))
-GenericURL = NewType("GenericURL", Union[HttpUrl, FileUrl, IPFSURI, S3URI])
+FileURI = NewType("FileURI", constr(regex=r"^file://.+"))
+GenericURL = NewType("GenericURL", Union[HttpUrl, FileURI, IPFSURI, S3URI])
 GenericURI = NewType("GenericURI", Union[HttpUrl, IPFSURI])
 MD5Hex = Union[constr(regex=r"^[A-F0-9]{32}$"), constr(regex=r"^[a-f0-9]{32}$")]
 

@@ -23,7 +23,6 @@ class CommonProject(BaseModel):
 
 class Image(BaseModel):
     id: int
-    md5: MD5Hex
     orig_uri: Optional[GenericURL]
     orig_ipfs: Optional[IPFSURI]
 
@@ -37,6 +36,7 @@ class ProjectImages(BaseModel):
 class ImageFile(BaseModel):
     image_id: int
     file_path: Optional[str]
+    md5: MD5Hex
     ipfs: Optional[str]
     w: Optional[int]
     h: Optional[int]
@@ -201,9 +201,7 @@ class Workspace(BaseModel):
             cls.images = {}
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM Images"""):
-                cls.projects[row[0]] = Image(
-                    md5=row[1], orig_uri=row[2], orig_ipfs=row[3]
-                )
+                cls.projects[row[0]] = Image(orig_uri=row[1], orig_ipfs=row[2])
         log.info(f"Extraction of {len(cls.images)} Images from {cls.db_path}")
 
     def load_ProjectImages(cls):
@@ -228,7 +226,7 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM imageFiles"""):
                 cls.projects[row[0]] = ImageFile(
-                    file_path=row[1], ipfs=row[2], w=row[3], h=row[4]
+                    file_path=row[1], md5=row[2], ipfs=row[3], w=row[4], h=row[5]
                 )
         log.info(f"Extraction of {len(cls.imageFiles)} ImageFiles from {cls.db_path}")
 
