@@ -10,6 +10,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from synthmap.imageProcessing import imgproc
 from synthmap.log.logger import getLogger
 from synthmap.models import synthmap as synthmodels
 
@@ -48,12 +49,16 @@ schemas = {
 
         UNIQUE(image_id, project_id),
         UNIQUE(project_id, project_image_id))""",
-    "imageFiles": """CREATE TABLE imageFiles(image_id INTEGER NOT NULL,
+    "imageFiles": """CREATE TABLE imageFiles(image_id INTEGER PRIMARY KEY,
         file_path TEXT UNIQUE NOT NULL,
         md5 TEXT UNIQUE NOT NULL,
         ipfs TEXT UNIQUE,
         w INT,
         h INT)""",
+    "imageViews": """CREATE TABLE imageViews(image_id INTEGER NOT NULL,
+        file_id INTEGER NOT NULL,
+
+        UNIQUE(image_id, file_id))""",
     "entities": """CREATE TABLE Entities(entity_id INTEGER PRIMARY KEY,
         label TEXT,
         detail TEXT,
@@ -264,7 +269,11 @@ def get_md5(fp: Path):
 
 
 def insert_image(
-    db: sqlite3.Connection, file_path: Path, orig_uri: str = None, orig_ipfs: str = None
+    db: sqlite3.Connection,
+    file_path: Path,
+    existing_image_id: int = None,
+    orig_uri: str = None,
+    orig_ipfs: str = None,
 ) -> int:
     """Creates a new Image from <file_path> if it is not already registered in this database."""
     log.debug(f"Attempt to insert image {file_path}")
@@ -272,43 +281,59 @@ def insert_image(
     stmt_add_image = """INSERT OR IGNORE INTO Images
     (orig_uri, orig_ipfs) VALUES (?, ?)"""
     stmt_add_file = """INSERT OR IGNORE INTO imageFiles
-    (image_id, file_path, md5, ipfs, w, h) VALUES (?, ?, ?, ?, ?, ?)"""
+    (file_path, md5, ipfs, w, h) VALUES (?, ?, ?, ?, ?)"""
     image_id = db.execute(
         """SELECT image_id FROM imageFiles WHERE md5=?""", [md5]
     ).fetchone()
     if not image_id:
-        # Since we don't have a local md5 match, assume the file is original
-        if not orig_uri:
-            orig_uri = f"file://{file_path}"
-        db.execute(stmt_add_image, [orig_uri, orig_ipfs])
-        image_id = db.execute(
-            """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
-        ).fetchone()["id"]
-        # TODO: compute w & h with opencv à là cv2.imread('/path/to/image.png').shape
-        w, h = None, None
-        db.execute(stmt_add_file, [image_id, file_path, md5, orig_ipfs, w, h])
-        log.debug(f"Created Image #{image_id}")
-    else:
-        image_id = image_id.get("id")
-    return image_id
+        if existing_image_id:
+            image_id = existing_image_id
+        else:
+            # Since we don't have a local md5 match, assume the file is original
+            if not orig_uri:
+                orig_uri = f"file://{file_path}"
+            db.execute(stmt_add_image, [orig_uri, orig_ipfs])
+            image_id = db.execute(
+                """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
+            ).fetchone()["id"]
+        w, h = imgproc.get_size(file_path)
+        db.execute(stmt_add_file, [file_path, md5, orig_ipfs, w, h])
+        file_id = db.execute(
+            """SELECT image_id FROM imageFiles WHERE md5=?""", [md5]
+        ).fetchone()["image_id"]
+        log.debug(f"Created imageFile #{file_id}")
+        # TODO: associate image_id & file_id
+        return file_id
+    return image_id.get("id")
 
+
+def filepath2image(db: sqlite3.Connection, file_path: Path) -> int:
+    stmt = """SELECT image_id FROM imageViews
+    INNER JOIN imageFiles ON imageViews.file_id = imageFiles.image_id
+    WHERE imageFiles.file_path = ?"""
+    return db.execute(stmt, file_path).fetchone()["image_id"]
+
+
+def register_image_view(db: sqlite3.Connection, image_id: int, file_id: int):
+    stmt_add_imageView = """INSERT OR IGNORE INTO imageViews
+    (image_id, file_id) VALUES (?, ?)"""
+    db.execute(stmt_add_imageView, [image_id, file_id])
+    
 
 def count_images(db: sqlite3.Connection):
     """Returns the count of all registered Images in this database."""
     return db.execute("SELECT count(*) AS image_count FROM Images").fetchone()
 
 
-def list_images(db: sqlite3.Connection) -> List[synthmodels.Image]:
+def list_images(db: sqlite3.Connection) -> List[synthmodels.ImageFile]:
     """Returns all Images in this database."""
-    rows = db.execute("""SELECT * FROM Images""")
-    return [synthmodels.Image(**i) for i in rows]
+    rows = db.execute("""SELECT * FROM imageFiles""")
+    return [synthmodels.ImageFile(**i) for i in rows]
 
 
 def md5_to_filepath(db: sqlite3.Connection, md5):
     """Returns the filepath associated to the given md5 hash."""
-    stmt = """SELECT imageFiles.file_path AS file_path FROM imageFiles
-    INNER JOIN Images ON imageFiles.image_id = Images.id
-    WHERE Images.md5=?"""
+    stmt = """SELECT file_path FROM imageFiles WHERE md5=?"""
     return db.execute(stmt, [md5]).fetchone()
 
 

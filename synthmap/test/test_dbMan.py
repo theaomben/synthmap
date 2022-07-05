@@ -30,6 +30,7 @@ class TestConnectionCreation:
             "Users",
             "imageEntities",
             "imageFiles",
+            "imageViews",
             "projectImages",
             "sessionImages",
         ]

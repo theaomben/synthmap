@@ -168,7 +168,11 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM Projects"""):
                 cls.projects[row[0]] = CommonProject(
-                    label=row[1], project_type=row[2], orig_uri=row[3], created=row[4]
+                    project_id=row[0],
+                    label=row[1],
+                    project_type=row[2],
+                    orig_uri=row[3],
+                    created=row[4],
                 )
         log.info(f"Extraction of {len(cls.projects)} Projects from {cls.db_path}")
 
@@ -179,7 +183,9 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM ColmapProjects"""):
                 # TODO: if populate ColmapProject.load_all()
-                cls.projects[row[0]] = ColmapProject(db_path=row[1], image_path=row[2])
+                cls.colmapProjects[row[0]] = ColmapProject(
+                    db_path=row[1], image_path=row[2]
+                )
         log.info(
             f"Extraction of {len(cls.colmapProjects)} ColmapProjects from {cls.db_path}"
         )
@@ -190,7 +196,9 @@ class Workspace(BaseModel):
             cls.aliceProjects = {}
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM AliceProjects"""):
-                cls.projects[row[0]] = AliceProject(db_path=row[1], image_path=row[2])
+                cls.aliceProjects[row[0]] = AliceProject(
+                    db_path=row[1], image_path=row[2]
+                )
         log.info(
             f"Extraction of {len(cls.aliceProjects)} AliceProjects from {cls.db_path}"
         )
@@ -201,7 +209,7 @@ class Workspace(BaseModel):
             cls.images = {}
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM Images"""):
-                cls.projects[row[0]] = Image(orig_uri=row[1], orig_ipfs=row[2])
+                cls.images[row[0]] = Image(id=row[0], orig_uri=row[1], orig_ipfs=row[2])
         log.info(f"Extraction of {len(cls.images)} Images from {cls.db_path}")
 
     def load_ProjectImages(cls):
@@ -219,14 +227,19 @@ class Workspace(BaseModel):
             f"Extraction of {len(cls.projectImages)} ProjectImages from {cls.db_path}"
         )
 
-    def load_imageFiles(cls):
+    def load_ImageFiles(cls):
         log.debug(f"Attempt extraction of ImageFiles from {cls.db_path}")
         if not cls.imageFiles:
             cls.imageFiles = {}
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM imageFiles"""):
-                cls.projects[row[0]] = ImageFile(
-                    file_path=row[1], md5=row[2], ipfs=row[3], w=row[4], h=row[5]
+                cls.imageFiles[row[0]] = ImageFile(
+                    image_id=row[0],
+                    file_path=row[1],
+                    md5=row[2],
+                    ipfs=row[3],
+                    w=row[4],
+                    h=row[5],
                 )
         log.info(f"Extraction of {len(cls.imageFiles)} ImageFiles from {cls.db_path}")
 
@@ -237,6 +250,7 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM Entities"""):
                 cls.entities[row[0]] = Entity(
+                    entity_id=row[0],
                     label=row[1],
                     detail=row[2],
                     way_number=row[3],
@@ -257,7 +271,7 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM imageEntities"""):
                 cls.imageEntities.append(
-                    Entity(
+                    ImageEntities(
                         image_id=row[0],
                         entity_id=row[1],
                         tiles16=row[2],
@@ -280,18 +294,16 @@ class Workspace(BaseModel):
                 )
         log.info(f"Extraction of {len(cls.sessions)} Sessions from {cls.db_path}")
 
-    def load_sessionImages(cls):
+    def load_SessionImages(cls):
         log.debug(f"Attempt extraction of SessionImages from {cls.db_path}")
-        if not cls.imageEntities:
-            cls.imageEntities = []
+        if not cls.sessionImages:
+            cls.sessionImages = []
         with sqlite3.connect(cls.db_path) as db:
-            for row in db.execute("""SELECT * FROM imageEntities"""):
-                cls.imageEntities.append(
-                    Entity(
-                        image_id=row[0],
-                        entity_id=row[1],
-                        tiles16=row[2],
-                        bbox16=row[3],
+            for row in db.execute("""SELECT * FROM sessionImages"""):
+                cls.sessionImages.append(
+                    SessionImages(
+                        session_id=row[0],
+                        image_id=row[1],
                     )
                 )
-        log.info(f"Extraction of {len(cls.imageEntities)} Entities from {cls.db_path}")
+        log.info(f"Extraction of {len(cls.sessionImages)} Images from {cls.db_path}")

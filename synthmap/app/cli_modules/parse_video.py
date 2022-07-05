@@ -1,11 +1,8 @@
-from datetime import timedelta
-import math
-import os
-
 import rich_click as click  # import click
-import cv2
+
 
 from synthmap.log.logger import getLogger
+from synthmap.imageProcessing import imgproc
 
 
 log = getLogger(__name__)
@@ -59,32 +56,9 @@ def parse_video(
 ):
     """Extract JPEG images from video to a folder, optionally registering them into
     the current workspace."""
-    video = cv2.VideoCapture(video_path)
-    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = round(video.get(cv2.CAP_PROP_FPS), 0)
-    duration = timedelta(seconds=frame_count / fps)
-    log.debug(f"Duration of file {video_path}: {duration}@{fps}FPS")
-    if not frame_step or not isinstance(frame_step, int):
-        if not time_step:
-            raise ValueError
-        frame_step = math.ceil(time_step * fps)
-    count = 0
-    done = 0
-    log.debug("Begin seeking frames...")
-    for frame_idx in range(0, frame_count, frame_step):
-        while count < frame_idx:
-            _, image = video.read()
-            count += 1
-        _, image = video.read()
-        done += 1
-        if print_only:
-            log.debug(
-                f"Fake writing #{done}: "
-                + os.path.join(output_path, f"frame-{count}.JPG")
-            )
-        else:
-            cv2.imwrite(os.path.join(output_path, f"frame-{count}.JPG"), image)
-        count += 1
-    log.debug("...done seeking.")
-    if register_images:
-        raise NotImplementedError
+    for img_path in imgproc.parse_video(
+        video_path, output_path, frame_step, time_step, print_only
+    ):
+        print(img_path)
+        if register_images:
+            raise NotImplementedError
