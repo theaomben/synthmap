@@ -1,5 +1,4 @@
 import importlib.resources
-import os
 
 import pytest
 

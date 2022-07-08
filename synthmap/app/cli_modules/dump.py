@@ -1,3 +1,4 @@
+"""Defines the CLI commands for exporting synthmap data."""
 import rich_click as click  # import click
 
 

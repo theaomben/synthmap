@@ -1,6 +1,4 @@
-# pylint: disable=R0201
 import importlib.resources
-import os
 
 import numpy as np
 import pytest

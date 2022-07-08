@@ -1,3 +1,4 @@
+"""Sets up the Image router and all associated CRUD routes."""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -27,7 +28,6 @@ class ImageCount(BaseModel):
 @imagerouter.get("/count", response_model=ImageCount)
 def count_images(db_path=Depends(db_conn)) -> ImageCount:
     """Returns the number of registered Images"""
-    print(f"DB_PATH {db_path}")
     with db_man.mk_conn(db_path, read_only=True) as db:
         return db_man.count_images(db)
 
@@ -40,16 +40,16 @@ def create_image(
 
 
 @imagerouter.get("/{image_id}")
-def get_imageinfo(image_id: int, db_path=Depends(db_conn)):
+def get_imageinfo(imagefile_id: int, db_path=Depends(db_conn)):
     """Returns this Image's data, its Project's Data, and its Keypoints."""
     with db_man.mk_conn(db_path, read_only=True) as db:
         image_md5 = db.execute(
-            """SELECT md5 FROM imageFiles WHERE image_id=?""", [image_id]
+            """SELECT md5 FROM imageFiles WHERE file_id=?""", [imagefile_id]
         ).fetchone()["md5"]
-        image_project_data = db_man.get_image_info(db, image_id)
-        image_keypoints = colmapParser.list_image_keypoints(db, image_id)
+        image_project_data = db_man.get_image_projectdata(db, imagefile_id)
+        image_keypoints = colmapParser.list_image_keypoints(db, imagefile_id)
     return {
-        "image_id": image_id,
+        "image_id": imagefile_id,
         "md5": image_md5,
         "project_data": image_project_data,
         #'matches': image_matches,
@@ -83,7 +83,6 @@ def register_image_entity_get(
     return RedirectResponse(f"/view/entities/{entity_id}")
 
 
-# TODO: directly use CreateEntity in fn args?
 @imagerouter.post("/{image_id}/entities", tags=["Entities"])
 def register_image_entity_post(
     image_id: int,
@@ -151,7 +150,7 @@ def get_imagelist_size(
     with db_man.mk_conn(db_path, read_only=True) as db:
         if image_ids:
             print("recv image_ids")
-            return db_man.get_imagelist_size(db, image_ids=[str(i) for i in image_ids])
+            return db_man.get_imagelist_size(db, file_ids=[str(i) for i in image_ids])
         if all_images:
             print("recv all_images")
             return db_man.get_imagelist_size(db, all_images=True)

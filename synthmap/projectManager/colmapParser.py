@@ -122,15 +122,14 @@ def find_projects(db, paths: List[Path] = list()):
     db.commit()
 
 
-def list_project_images(db: sqlite3.Connection, project_id: int) -> bool:
+def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
     """Attempts to register all images listed in the Project."""
     stmt_get_proj_data = """SELECT db_path, image_path FROM ColmapProjects
         WHERE project_id=?"""
     proj_data = db.execute(stmt_get_proj_data, [project_id]).fetchone()
     stmt_add_image_to_project = """INSERT OR IGNORE INTO projectImages
-        (image_id, project_id, project_image_id)
+        (file_id, project_id, project_image_id)
         VALUES (?, ?, ?)"""
-    print("Working on", proj_data)
     with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         try:
             num_images = proj_db.execute(
@@ -167,8 +166,8 @@ def list_image_matches(
     stmt = """SELECT * FROM projectImages
     INNER JOIN Projects 
     ON Projects.id = projectImages.project_id
-    WHERE image_id=?"""
-    stmt_get_g_img_id = """SELECT image_id FROM projectImages
+    WHERE file_id=?"""
+    stmt_get_g_img_id = """SELECT file_id FROM projectImages
     WHERE project_image_id=? AND project_id=?"""
     matches = defaultdict(dict)
     keypoints = dict()
@@ -224,8 +223,8 @@ def list_project_matches(db, project_id):
     pass
 
 
-def list_project_matches_old(db, project_id, image_id):
-    stmt_get_g_img_id = """SELECT image_id FROM projectImages
+def list_project_matches_old(db, project_id, file_id):
+    stmt_get_g_img_id = """SELECT file_id FROM projectImages
     WHERE project_image_id=? AND project_id=?"""
     proj_data = db.execute(
         """SELECT db_path, image_path FROM ColmapProjects
@@ -234,8 +233,8 @@ def list_project_matches_old(db, project_id, image_id):
     ).fetchone()
     proj_image_id = db.execute(
         """SELECT project_image_id FROM projectImages
-    WHERE image_id=? AND project_id=?""",
-        [image_id, project_id],
+    WHERE file_id=? AND project_id=?""",
+        [file_id, project_id],
     ).fetchone()["project_image_id"]
     ret = []
     with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
@@ -243,18 +242,18 @@ def list_project_matches_old(db, project_id, image_id):
             i1, i2 = pair_id_to_image_ids(row["pair_id"])
             if proj_image_id == i1:
                 i2_id = db.execute(stmt_get_g_img_id, [i2, project_id]).fetchone()[
-                    "image_id"
+                    "file_id"
                 ]
                 ret.append(i2_id)
             elif proj_image_id == i2:
                 i1_id = db.execute(stmt_get_g_img_id, [i1, project_id]).fetchone()[
-                    "image_id"
+                    "file_id"
                 ]
                 ret.append(i1_id)
     return ret
 
 
-def get_image_descriptors(db, image_id):
+def get_image_descriptors(db, file_id):
     """Returns single set of Descriptors for this Image, as stored in the
     first (in terms of project_id) Project."""
     proj_data = db.execute(
@@ -263,8 +262,8 @@ def get_image_descriptors(db, image_id):
             Projects.db_path, Projects.image_path
         FROM projectImages
         INNER JOIN Projects ON projectImages.project_id=Projects.id
-        WHERE image_id=?""",
-        [image_id],
+        WHERE file_id=?""",
+        [file_id],
     ).fetchone()
     with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         descriptor = proj_db.execute(
@@ -288,6 +287,9 @@ class RelatedImagesItem(BaseModel):
 
 def get_entity_related_images(db, entity_id: int) -> List[RelatedImagesItem]:
     """Returns basic information for all Images matching this Image."""
+    # FIXME: Will break as soon as Image.image_id != imageFile.file_id
+    # JOIN imageFiles.file_id through Images
+    # see dbman.get_entity_images()
     registered_images = [
         i["image_id"]
         for i in db.execute(
@@ -300,7 +302,7 @@ def get_entity_related_images(db, entity_id: int) -> List[RelatedImagesItem]:
         project_ids = [
             i["project_id"]
             for i in db.execute(
-                "SELECT project_id FROM projectImages WHERE image_id = ?", [image_id]
+                "SELECT project_id FROM projectImages WHERE file_id = ?", [image_id]
             )
         ]
         for project_id in project_ids:
@@ -315,25 +317,25 @@ def get_entity_related_images(db, entity_id: int) -> List[RelatedImagesItem]:
     for image_id in related_images:
         related_data.extend(
             db.execute(
-                """SELECT projectImages.image_id as image_id,
+                """SELECT projectImages.file_id as file_id,
         project_id, project_image_id, file_path
         FROM projectImages
-        INNER JOIN imageFiles ON projectImages.image_id=imageFiles.image_id
-        WHERE projectImages.image_id=?""",
+        INNER JOIN imageFiles ON projectImages.file_id=imageFiles.file_id
+        WHERE projectImages.file_id=?""",
                 [image_id],
             ).fetchall()
         )
     return sorted(related_data, key=lambda x: x["project_id"])
 
 
-def get_imageset_data(db, project_id: int, image_ids: list):
+def get_imageset_data(db, project_id: int, file_ids: list):
     """Returns each row of the Project's Match data linking Images listed in
     <image_ids>."""
     gid2pid = (
-        lambda image_id: db.execute(
+        lambda file_id: db.execute(
             """SELECT project_image_id FROM projectImages
-    WHERE image_id=? AND project_id=?""",
-            [image_id, project_id],
+    WHERE file_id=? AND project_id=?""",
+            [file_id, project_id],
         )
         .fetchone()
         .get("project_image_id")
@@ -342,7 +344,7 @@ def get_imageset_data(db, project_id: int, image_ids: list):
         """SELECT file_path, db_path, image_path FROM Projects WHERE id=?""",
         [project_id],
     ).fetchone()
-    proj_image_id_set = set([gid2pid(i) for i in image_ids])
+    proj_image_id_set = set([gid2pid(i) for i in file_ids])
     print("\t", proj_data["db_path"])
     with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         img_ids_str = ", ".join(map(str, proj_image_id_set))

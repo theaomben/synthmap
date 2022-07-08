@@ -1,8 +1,11 @@
+"""Defines the CLI commands for making smaller images while preserving EXIF data."""
+import os
 from pathlib import Path
 
 import rich_click as click
 
 
+from synthmap.db import manager as db_man
 from synthmap.log.logger import getLogger
 from synthmap.imageProcessing import imgproc
 

@@ -1,12 +1,7 @@
-# pylint: disable=R0201
-
-import sqlite3
-
 import numpy as np
-import pytest
 
 from synthmap.db import manager as db_man
-from synthmap.models import synthmap as synthmodels, colmap as colmodels
+from synthmap.models import synthmap as synthmodels
 from synthmap.projectManager import colmapParser
 
 
@@ -60,14 +55,13 @@ class TestProjectManagement:
 
     def test_W_projectImages(self, initialised_db):
         for project in db_man.list_projects(initialised_db):
-            colmapParser.list_project_images(initialised_db, project["project_id"])
+            colmapParser.register_project_images(initialised_db, project["project_id"])
 
     def test_R_projectImages(self, initialised_db, expected_projectImages):
-        # TODO: clone db_man.get_project_images(initialised_db, 1) into expected_projBlabla
         images = db_man.get_project_images(initialised_db, 1)
         for image in images:
             assert synthmodels.ImageFile(**image)
-            assert image == expected_projectImages[image["image_id"] - 1]
+            assert image == expected_projectImages[image["file_id"] - 1]
 
     def test_R_projectInfo(self, initialised_db):
         for project in db_man.list_projects(initialised_db):
@@ -93,4 +87,4 @@ class TestProjectManagement:
         known_data = {1: [1, 6, 12, 16], 2: [1, 13, 14]}
         for entity_id, observations in known_data.items():
             db_images = db_man.get_entity_images(initialised_db, entity_id)
-            assert observations == [i["image_id"] for i in db_images]
+            assert observations == [i["file_id"] for i in db_images]

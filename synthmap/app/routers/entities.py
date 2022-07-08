@@ -1,3 +1,4 @@
+"""Sets up the Entity router and all associated CRUD routes."""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends

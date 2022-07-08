@@ -33,6 +33,7 @@ def main_view():
 def view_single_image(image_id: int):
     template = env.get_template("image_view.html")
     with db_man.mk_conn(read_only=True) as db:
+        # FIXME: argument image_id != image_file id
         image = db.execute(
             """SELECT image_id, md5 FROM imageFiles WHERE image_id=?""", [image_id]
         ).fetchone()

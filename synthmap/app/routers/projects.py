@@ -5,6 +5,10 @@ from fastapi import APIRouter, Depends
 from synthmap.app.routers.utils import db_conn
 from synthmap.db import manager as db_man
 from synthmap.models import synthmap as synthmodels
+from synthmap.log.logger import getLogger
+
+
+log = getLogger(__name__)
 
 projectrouter = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -26,6 +30,8 @@ def create_project(projectdata: db_man.CreateProject, db_path=Depends(db_conn)):
 @projectrouter.get("/{project_id}")  # , response_model=db_man.InfoProject)
 def get_projectinfo(project_id: int, db_path=Depends(db_conn)):
     """Returns this Project's data"""
+    log.error(f"db_path {db_path}")
+    print(f"db_path {db_path}")
     with db_man.mk_conn(db_path, read_only=True) as db:
         project_info = db_man.get_project_info(db, project_id)
     return project_info

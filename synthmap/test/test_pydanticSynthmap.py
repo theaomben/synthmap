@@ -1,7 +1,5 @@
 import pytest
 
-from synthmap.models import synthmap as synthmodels
-
 
 class TestWorkspace:
     def test_setup(self, synthmap_workspace_model):
@@ -24,6 +22,9 @@ class TestWorkspace:
 
     def test_load_ImageFiles(self, synthmap_workspace_model):
         synthmap_workspace_model.load_ImageFiles()
+
+    def test_load_ImageViews(self, synthmap_workspace_model):
+        synthmap_workspace_model.load_ImageViews()
 
     def test_load_Entities(self, synthmap_workspace_model):
         synthmap_workspace_model.load_Entities()

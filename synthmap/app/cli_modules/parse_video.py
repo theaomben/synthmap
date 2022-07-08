@@ -1,3 +1,4 @@
+"""Defines the CLI commands for obtaining images from videos."""
 import rich_click as click  # import click
 
 
@@ -43,7 +44,7 @@ as seconds. Ignored if `--frame_step` is passed.""",
     "--register-images",
     default=False,
     is_flag=True,
-    help="Register the resulting images into the current workspace. Default False. (See `--db-path`)",
+    help="Register the resulting images into the current workspace. Default False.",
 )
 @click.option(
     "--print-only",

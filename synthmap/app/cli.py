@@ -1,8 +1,10 @@
+# pylint: disable=C0301
+"""Entry point for all command line related functionality"""
+
 import importlib.resources
 import os
 from pathlib import Path
 from multiprocessing import Process
-import sys
 import time
 
 import rich_click as click  # import click

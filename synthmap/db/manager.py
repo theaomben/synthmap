@@ -1,7 +1,6 @@
 """Interface for a Synthmap SQLite database."""
 
 from datetime import datetime
-from enum import Enum
 import hashlib
 import os.path
 from pathlib import Path
@@ -43,13 +42,13 @@ schemas = {
     "images": """CREATE TABLE Images (id INTEGER PRIMARY KEY,
         orig_uri TEXT UNIQUE,
         orig_ipfs TEXT UNIQUE)""",
-    "projectImages": """CREATE TABLE projectImages(image_id INT NOT NULL,
+    "projectImages": """CREATE TABLE projectImages(file_id INT NOT NULL,
         project_id INT NOT NULL,
         project_image_id INT NOT NULL,
 
-        UNIQUE(image_id, project_id),
+        UNIQUE(file_id, project_id),
         UNIQUE(project_id, project_image_id))""",
-    "imageFiles": """CREATE TABLE imageFiles(image_id INTEGER PRIMARY KEY,
+    "imageFiles": """CREATE TABLE imageFiles(file_id INTEGER PRIMARY KEY,
         file_path TEXT UNIQUE NOT NULL,
         md5 TEXT UNIQUE NOT NULL,
         ipfs TEXT UNIQUE,
@@ -95,6 +94,7 @@ schemas = {
 
 
 def dict_factory(cursor, row):
+    """Maps a query's columns (and aliases) to its values."""
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
@@ -136,14 +136,9 @@ def setup_db(db: sqlite3.Connection) -> sqlite3.Connection:
 ###
 
 
-class EnumProjectTypes(Enum):
-    colmap: "colmap"
-    alice: "alice"
-
-
 class CreateProject(BaseModel):
     label: str
-    project_type: EnumProjectTypes
+    project_type: synthmodels.EnumProjectTypes
     file_path: str
     db_path: Optional[str]
     image_path: Optional[str]
@@ -219,7 +214,7 @@ def get_project_images(
     """Returns all Image data associated to a Project from the passed db.
     TODO: Results will be messed up with resized images pointing to the same image_id"""
     stmt_proj_imgs = """SELECT imageFiles.* FROM imageFiles
-    INNER JOIN projectImages ON projectImages.image_id = imageFiles.image_id
+    INNER JOIN projectImages ON projectImages.file_id = imageFiles.file_id
     WHERE projectImages.project_id=?"""
     return list(db.execute(stmt_proj_imgs, [project_id]).fetchall())
 
@@ -282,34 +277,35 @@ def insert_image(
     (orig_uri, orig_ipfs) VALUES (?, ?)"""
     stmt_add_file = """INSERT OR IGNORE INTO imageFiles
     (file_path, md5, ipfs, w, h) VALUES (?, ?, ?, ?, ?)"""
-    image_id = db.execute(
-        """SELECT image_id FROM imageFiles WHERE md5=?""", [md5]
+    file_id = db.execute(
+        """SELECT file_id FROM imageFiles WHERE md5=?""", [md5]
     ).fetchone()
-    if not image_id:
-        if existing_image_id:
-            image_id = existing_image_id
-        else:
-            # Since we don't have a local md5 match, assume the file is original
-            if not orig_uri:
-                orig_uri = f"file://{file_path}"
-            db.execute(stmt_add_image, [orig_uri, orig_ipfs])
-            image_id = db.execute(
-                """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
-            ).fetchone()["id"]
-        w, h = imgproc.get_size(file_path)
-        db.execute(stmt_add_file, [file_path, md5, orig_ipfs, w, h])
-        file_id = db.execute(
-            """SELECT image_id FROM imageFiles WHERE md5=?""", [md5]
-        ).fetchone()["image_id"]
-        log.debug(f"Created imageFile #{file_id}")
-        # TODO: associate image_id & file_id
-        return file_id
-    return image_id.get("id")
+    if file_id:
+        return file_id.get("file_id")
+    if existing_image_id:
+        image_id = existing_image_id
+    else:
+        # Since we don't have a local md5 match, assume the file is original
+        if not orig_uri:
+            orig_uri = f"file://{file_path}"
+        db.execute(stmt_add_image, [orig_uri, orig_ipfs])
+        image_id = db.execute(
+            """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
+        ).fetchone()["id"]
+    w, h = imgproc.get_size(file_path)
+    db.execute(stmt_add_file, [file_path, md5, orig_ipfs, w, h])
+    file_id = db.execute(
+        """SELECT file_id FROM imageFiles WHERE md5=?""", [md5]
+    ).fetchone()["file_id"]
+    # TODO: associate image_id & file_id
+    register_image_view(db, image_id, file_id)
+    log.debug(f"Created imageFile #{file_id} related to Image #{image_id}")
+    return file_id
 
 
 def filepath2image(db: sqlite3.Connection, file_path: Path) -> int:
     stmt = """SELECT image_id FROM imageViews
-    INNER JOIN imageFiles ON imageViews.file_id = imageFiles.image_id
+    INNER JOIN imageFiles ON imageViews.file_id = imageFiles.file_id
     WHERE imageFiles.file_path = ?"""
     return db.execute(stmt, file_path).fetchone()["image_id"]
 
@@ -318,7 +314,7 @@ def register_image_view(db: sqlite3.Connection, image_id: int, file_id: int):
     stmt_add_imageView = """INSERT OR IGNORE INTO imageViews
     (image_id, file_id) VALUES (?, ?)"""
     db.execute(stmt_add_imageView, [image_id, file_id])
-    
+
 
 def count_images(db: sqlite3.Connection):
     """Returns the count of all registered Images in this database."""
@@ -337,21 +333,21 @@ def md5_to_filepath(db: sqlite3.Connection, md5):
     return db.execute(stmt, [md5]).fetchone()
 
 
-def get_image_info(db: sqlite3.Connection, image_id: int):
+def get_image_projectdata(db: sqlite3.Connection, file_id: int):
     """Returns this a list of this Image's data from each Project in which it appears."""
     image_project_data = db.execute(
         """SELECT * FROM projectImages
         INNER JOIN Projects
         ON Projects.project_id = projectImages.project_id
-        WHERE image_id=?""",
-        [image_id],
+        WHERE file_id=?""",
+        [file_id],
     ).fetchall()
     return image_project_data
 
 
 def get_imagelist_size(
     db: sqlite3.Connection,
-    image_ids=None,
+    file_ids=None,
     all_images=False,
     gt: Optional[int] = None,
     lt: Optional[int] = None,
@@ -359,18 +355,16 @@ def get_imagelist_size(
     """Returns the on-disk size of (in order of priority):
     - <all_images> if set to True
     - if both <gt> & <lt> are specified as integers,
-        the range of ids `gt <= image_id < lt`
-    - the specified Images in <image_ids>
+        the range of ids `gt <= file_id < lt`
+    - the specified Images in <file_ids>
     -"""
     if all_images:
         stmt = """SELECT file_path FROM imageFiles"""
     elif isinstance(lt, int) and isinstance(gt, int) and gt < lt:
-        stmt = f"""SELECT file_path FROM imageFiles WHERE image_id >= {gt} AND image_id < {lt}"""
-    elif image_ids:
-        param_string = ", ".join(image_ids)
-        stmt = (
-            f"""SELECT file_path FROM imageFiles WHERE image_id IN ({param_string})"""
-        )
+        stmt = f"""SELECT file_path FROM imageFiles WHERE file_id >= {gt} AND file_id < {lt}"""
+    elif file_ids:
+        param_string = ", ".join(file_ids)
+        stmt = f"""SELECT file_path FROM imageFiles WHERE file_id IN ({param_string})"""
     else:
         return None
     cumul_size = 0
@@ -385,12 +379,12 @@ def get_imagelist_size(
     return cumul_size
 
 
-def get_image_projects(db: sqlite3.Connection, image_id: int):
+def get_image_projects(db: sqlite3.Connection, file_id: int):
     """List Projects in which Image appears."""
     stmt = """SELECT Projects.* FROM Projects
     INNER JOIN projectImages ON projectImages.project_id = Projects.project_id
-    WHERE projectImages.image_id=?"""
-    return db.execute(stmt, [image_id]).fetchall()
+    WHERE projectImages.file_id=?"""
+    return db.execute(stmt, [file_id]).fetchall()
 
 
 def get_image_entities(db: sqlite3.Connection, image_id: int):
@@ -459,8 +453,9 @@ def list_entities(db: sqlite3.Connection) -> List[synthmodels.Entity]:
 
 def get_entity_images(db: sqlite3.Connection, entity_id: int):
     """Returns Images registered to this Entity."""
-    stmt = """SELECT imageFiles.image_id, md5 FROM imageFiles
-    INNER JOIN imageEntities ON imageEntities.image_id = imageFiles.image_id
+    # FIXME: INNER JOIN imageEntities through Images
+    stmt = """SELECT imageFiles.file_id, md5 FROM imageFiles
+    INNER JOIN imageEntities ON imageEntities.image_id = imageFiles.file_id
     WHERE imageEntities.entity_id=?"""
     return db.execute(stmt, [entity_id]).fetchall()
 

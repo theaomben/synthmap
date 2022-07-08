@@ -279,7 +279,7 @@ class ColmapProject(BaseModel):
                 cls.keypoints[row[0]] = ImageKeypoints(
                     image_id=row[0], rows=row[1], cols=row[2], data=data
                 )
-                log.info(f"Extracted {len(cls.keypoints)} Keypoints from {cls.db_path}")
+        log.info(f"Extracted {len(cls.keypoints)} Keypoints from {cls.db_path}")
 
     def load_descriptors(cls):
         if not cls.descriptors:

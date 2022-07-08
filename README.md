@@ -51,14 +51,25 @@ cd synthmap
 python3 -m venv venv
 source venv/bin/activate OR (on windows) venv\Scripts\activate
 (venv) python -m pip install --upgrade pip build
+
+# Either install in editable mode (recommended): https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs
+(venv) python -m pip install -e .
+# Or build and update the artifacts yourself.
 (venv) python -m build
 (venv) python -m pip install dist\synthmap-*.whl
 ...
+
+
+# To be able to use this virtualenv from the "Kernel" menu in jupyter notebooks:
+(venv) python -m pip install ipykernel
+(venv) ipython kernel install --name=Synthmap
+
 
 # Optional: Format, test and check the code for possible improvements
 (venv) black synthmap/
 (venv) python -m pytest -v --pyargs synthmap > pytest_report.txt
 (venv) python -m pylint -d C0114 -d C0115 -d C0116 -d E0401 -d E0611 -d R0903 -d C0103 -d W1203 synthmap > pylint_report.txt
+
 
 # Get the frontend
 git clone <frontmap repo>

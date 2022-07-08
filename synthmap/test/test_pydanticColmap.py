@@ -1,10 +1,7 @@
-# pylint: disable=R0201
-
 import importlib.resources
 import os
 from pathlib import Path
 
-import pytest
 
 from synthmap.models import colmap as colmodels
 

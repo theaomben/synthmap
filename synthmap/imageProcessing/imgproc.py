@@ -1,3 +1,4 @@
+"""This module holds logic related to transforming image & video files"""
 from datetime import timedelta
 import math
 import os
@@ -14,11 +15,14 @@ log = getLogger(__name__)
 
 
 def get_size(image_path) -> Tuple[int, int]:
+    """Returns (width, height) for this image."""
     y, x, depth = cv2.imread(image_path).shape
     return x, y
 
 
 def new_size(x: int, y: int, max_size: int = 3000) -> (int, int):
+    """Returns a (width, height) pair such that max(pair) < max_size while
+    preserving aspect ratio."""
     if max((x, y)) < max_size:
         return (x, y)
     if x >= y:
@@ -31,6 +35,8 @@ def new_size(x: int, y: int, max_size: int = 3000) -> (int, int):
 
 
 def resize(src_p, dest_p, max_size: int = 3000):
+    """Creates a copy of the src_p image to dest_p smaller than max_size.
+    See new_size()"""
     exifdata = EXIFImage(src_p)
     x, y = exifdata.pixel_x_dimension, exifdata.pixel_y_dimension
     if max(x, y, max_size) == max_size:
@@ -47,10 +53,6 @@ def resize(src_p, dest_p, max_size: int = 3000):
         fd.write(destexif.get_file())
 
 
-def get_image_size(image_path):
-    return cv2.imread(image_path).shape
-
-
 def parse_video(video_path, output_path, frame_step, time_step, print_only):
     """Extract JPEG images from video to a folder, optionally registering them into
     the current workspace."""
@@ -65,7 +67,6 @@ def parse_video(video_path, output_path, frame_step, time_step, print_only):
         frame_step = math.ceil(time_step * fps)
     count = 0
     done = 0
-    img_paths = []
     log.debug("Begin seeking frames...")
     for frame_idx in range(0, frame_count, frame_step):
         while count < frame_idx:

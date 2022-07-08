@@ -1,8 +1,5 @@
-# pylint: disable=R0201
 import importlib.resources
-import os
 
-import pytest
 import requests
 
 

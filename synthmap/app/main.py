@@ -1,8 +1,10 @@
+"""Sets up the FastAPI app"""
 import os
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+
+# from fastapi.responses import FileResponse
+# from fastapi.staticfiles import StaticFiles
 
 from synthmap.app.routers.api import apirouter
 from synthmap.app.routers.html import htmlrouter
@@ -20,12 +22,12 @@ except AttributeError:
     )
 
 # Serves the myriad files from a non-minified cljs compile
-# app.mount("/js", StaticFiles(directory="C:\\Code\\frontmap\\public\\js\\"), name="js")
+# app.mount("/js", StaticFiles(directory="frontmap\\public\\js\\"), name="js")
 
 # Serves the root html from frontmap output
 # @app.get("/index.html", response_class=FileResponse)
 # def app_view():
-#    return FileResponse("C:\\Code\\frontmap\\public\\index.html")
+#    return FileResponse("frontmap\\public\\index.html")
 
 
 app.include_router(htmlrouter)

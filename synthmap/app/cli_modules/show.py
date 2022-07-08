@@ -1,3 +1,4 @@
+"""Defines the CLI commands for visualising synthmap data in the CLI."""
 from collections import defaultdict
 import pprint
 
@@ -37,6 +38,7 @@ def entities(ctx):
 @show.command()
 @click.pass_context
 def entity_tree(ctx):
+    """Print all entities in tree form"""
     with db_man.mk_conn(ctx.obj["db_path"], read_only=True) as db:
         data = db_man.list_entities(db)
     pp = pprint.PrettyPrinter()

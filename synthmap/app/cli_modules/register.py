@@ -1,3 +1,4 @@
+"""Defines the CLI commands for registering data into the synthmap DB."""
 from glob import glob
 import itertools
 import os
@@ -66,6 +67,8 @@ def images(ctx):
 
 
 def seek_projects(ctx, filename, extractor_fn, model):
+    """Applies the specified extractor function to all files matching the given filename
+    under the root folder (see `cli register --root-folder`)."""
     q_string = os.path.join(ctx.obj["register_root"], f"**\\{filename}")
     for path in glob(q_string, recursive=True):
         for exclude in ctx.obj["exclude_folders"]:

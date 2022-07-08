@@ -1,5 +1,6 @@
 # pylint: disable=E0213
 
+from enum import Enum
 import sqlite3
 from typing import Dict, List, NewType, Optional, Union
 
@@ -14,10 +15,15 @@ from synthmap.log.logger import getLogger
 log = getLogger(__name__)
 
 
+class EnumProjectTypes(str, Enum):
+    colmap = "colmap"
+    alice = "alice"
+
+
 class CommonProject(BaseModel):
     project_id: int
     label: str
-    project_type: str
+    project_type: EnumProjectTypes
     created: str
 
 
@@ -28,18 +34,23 @@ class Image(BaseModel):
 
 
 class ProjectImages(BaseModel):
-    image_id: int
+    file_id: int
     project_id: int
     project_image_id: int
 
 
 class ImageFile(BaseModel):
-    image_id: int
+    file_id: int
     file_path: Optional[str]
     md5: MD5Hex
     ipfs: Optional[str]
     w: Optional[int]
     h: Optional[int]
+
+
+class ImageView(BaseModel):
+    image_id: int
+    file_id: int
 
 
 EntityTree = NewType("EntityTree", Dict[str, Union[list, "EntityTree"]])
@@ -124,10 +135,11 @@ class Workspace(BaseModel):
     images: Optional[Dict[int, Image]] = None
     projectImages: Optional[List[ProjectImages]] = None
     imageFiles: Optional[Dict[int, ImageFile]] = None
+    imageViews: Optional[Dict[int, ImageView]] = None
     entities: Optional[Dict[int, Entity]] = None
-    imageEntities: Optional[List[ImageEntities]]
-    sessions: Optional[Dict[int, Session]]
-    sessionImages: Optional[List[SessionImages]]
+    imageEntities: Optional[List[ImageEntities]] = None
+    sessions: Optional[Dict[int, Session]] = None
+    sessionImages: Optional[List[SessionImages]] = None
 
     @validator("db_path")
     def db_is_init(cls, db_path):
@@ -147,6 +159,7 @@ class Workspace(BaseModel):
                     "Images",
                     "projectImages",
                     "imageFiles",
+                    "imageViews",
                     "Entities",
                     "imageEntities",
                     "Sessions",
@@ -220,7 +233,7 @@ class Workspace(BaseModel):
             for row in db.execute("""SELECT * FROM projectImages"""):
                 cls.projectImages.append(
                     ProjectImages(
-                        image_id=row[0], project_id=row[1], project_image_id=row[2]
+                        file_id=row[0], project_id=row[1], project_image_id=row[2]
                     )
                 )
         log.info(
@@ -234,7 +247,7 @@ class Workspace(BaseModel):
         with sqlite3.connect(cls.db_path) as db:
             for row in db.execute("""SELECT * FROM imageFiles"""):
                 cls.imageFiles[row[0]] = ImageFile(
-                    image_id=row[0],
+                    file_id=row[0],
                     file_path=row[1],
                     md5=row[2],
                     ipfs=row[3],
@@ -242,6 +255,18 @@ class Workspace(BaseModel):
                     h=row[5],
                 )
         log.info(f"Extraction of {len(cls.imageFiles)} ImageFiles from {cls.db_path}")
+
+    def load_ImageViews(cls):
+        log.debug(f"Attempt extraction of ImageViews from {cls.db_path}")
+        if not cls.imageViews:
+            cls.imageViews = {}
+        with sqlite3.connect(cls.db_path) as db:
+            for row in db.execute("""SELECT * FROM imageViews"""):
+                cls.imageViews[row[0]] = ImageView(
+                    image_id=row[0],
+                    file_id=row[1],
+                )
+        log.info(f"Extraction of {len(cls.imageViews)} ImageViews from {cls.db_path}")
 
     def load_Entities(cls):
         log.debug(f"Attempt extraction of Entities from {cls.db_path}")

@@ -1,3 +1,4 @@
+"""Sets up the root API router, imports all subrouters."""
 from fastapi import APIRouter
 
 # from app.routers.users import userrouter
@@ -15,6 +16,7 @@ apirouter = APIRouter(
 
 @apirouter.get("/")
 def api_root():
+    """Basic "alive" endpoint"""
     return {"ok": True}
 
 
