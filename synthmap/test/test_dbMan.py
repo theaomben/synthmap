@@ -1,5 +1,3 @@
-import numpy as np
-
 from synthmap.db import manager as db_man
 from synthmap.models import synthmap as synthmodels
 from synthmap.projectManager import colmapParser

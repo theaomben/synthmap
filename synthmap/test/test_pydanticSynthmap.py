@@ -1,6 +1,3 @@
-import pytest
-
-
 class TestWorkspace:
     def test_setup(self, synthmap_workspace_model):
         synthmap_workspace_model.db_is_init(synthmap_workspace_model.db_path)

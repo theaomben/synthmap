@@ -4,7 +4,7 @@ from enum import Enum
 import sqlite3
 from typing import Dict, List, NewType, Optional, Union
 
-from pydantic import constr, validator, FilePath
+from pydantic import conlist, constr, validator, FilePath
 
 from synthmap.models.alice import AliceProject
 from synthmap.models.colmap import ColmapProject
@@ -25,6 +25,13 @@ class CommonProject(BaseModel):
     label: str
     project_type: EnumProjectTypes
     created: str
+
+
+###
+#
+# Image Models
+#
+###
 
 
 class Image(BaseModel):
@@ -52,6 +59,12 @@ class ImageView(BaseModel):
     image_id: int
     file_id: int
 
+
+###
+#
+# Entity Models
+#
+###
 
 EntityTree = NewType("EntityTree", Dict[str, Union[list, "EntityTree"]])
 
@@ -114,6 +127,13 @@ class ImageEntities(BaseModel):
     bbox16: Optional[str]
 
 
+###
+#
+# Session Models
+#
+###
+
+
 class Session(BaseModel):
     session_id: int
     orig_uri: GenericURI
@@ -127,7 +147,88 @@ class SessionImages(BaseModel):
     image_id: int
 
 
+###
+#
+# SFMScene Models
+#
+###
+
+
+class View(BaseModel):
+    image_file_id: int
+    file_path: str
+    ipfs: str
+
+
+class Intrinsic(BaseModel):
+    width: int
+    height: int
+    sensorWidth: float
+    sensorHeight: float
+    type: str
+    pxInitialFocalLength: float
+    pxFocalLength: float
+    principalPoint: conlist(item_type=float, min_items=2, max_items=2)
+
+
+class Extrinsic(BaseModel):
+    rotation_quaternion: conlist(item_type=float, min_items=4, max_items=4)
+    position: conlist(item_type=float, min_items=3, max_items=3)
+
+
+class Feature(BaseModel):
+    x: float
+    y: float
+    landmark_id: int
+
+
+class Landmark(BaseModel):
+    landmark_id: int
+    x: float
+    y: float
+    z: float
+    r: Optional[float]
+    g: Optional[float]
+    b: Optional[float]
+    track: Dict[int, int]  # image_file_id: feature_id
+
+
+class SFMScene(BaseModel):
+    views: Dict[int, View]
+    intrinsics: Dict[int, Intrinsic]
+    extrinsics: Dict[int, Extrinsic]
+    features: Dict[int, List[Feature]]
+    landmarks: List[Landmark]
+
+    def colmap2SFMScene(project):
+        return SFMScene(
+            views=views,
+            intrinsics=intrinsics,
+            extrinsics=extrinsics,
+            features=features,
+            landmarks=landmarks,
+        )
+
+    def alice2SFMScene(project):
+        return SFMScene(
+            views=views,
+            intrinsics=intrinsics,
+            extrinsics=extrinsics,
+            features=features,
+            landmarks=landmarks,
+        )
+
+
+###
+#
+# "Root" Workspace Model
+#
+###
+
+
 class Workspace(BaseModel):
+    """Represents and loads the content of an entire synthmap database"""
+
     db_path: FilePath
     projects: Optional[Dict[int, CommonProject]] = None
     colmapProjects: Optional[Dict[int, ColmapProject]] = None

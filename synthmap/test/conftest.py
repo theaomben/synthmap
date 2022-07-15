@@ -14,6 +14,7 @@ import uvicorn
 
 from synthmap.db import manager as db_man
 from synthmap.models import colmap as colmodels, synthmap as synthmodels
+from synthmap.models import colmapScene as colscene
 from synthmap.projectManager import colmapParser
 from synthmap.log.logger import getLogger
 
@@ -26,13 +27,14 @@ TEST_ROOT = importlib.resources.files("synthmap.test")
 def memconn():
     with db_man.mk_conn(":memory:") as memconn:
         yield memconn
+    memconn.close()
 
 
 @pytest.fixture(scope="module")
 def temp_dir():
     dirn = tempfile.mkdtemp()
     yield dirn
-    # shutil.rmtree(dirn)
+    shutil.rmtree(dirn)
 
 
 @pytest.fixture(scope="module")
@@ -312,3 +314,20 @@ def colmap_project_model(sample_project_data):
 def synthmap_workspace_model(temp_db_dir):
     db_path = os.path.join(temp_db_dir, "main.db")
     yield synthmodels.Workspace(db_path=db_path)
+
+
+###
+#
+# Scene Models
+#
+###
+
+
+@pytest.fixture(scope="module")
+def colmap_scene():
+    cameras_path = os.path.join(TEST_ROOT, "sample_data", "colmap_model", "cameras.txt")
+    images_path = os.path.join(TEST_ROOT, "sample_data", "colmap_model", "images.txt")
+    points_path = os.path.join(TEST_ROOT, "sample_data", "colmap_model", "points.txt")
+    yield colscene.Scene(
+        cameras_path=cameras_path, images_path=images_path, points_path=points_path
+    )
