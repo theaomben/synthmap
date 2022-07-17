@@ -8,6 +8,7 @@ from pydantic import conlist, constr, validator, FilePath
 
 from synthmap.models.alice import AliceProject
 from synthmap.models.colmap import ColmapProject
+from synthmap.models.colmapScene import Scene as ColmapScene
 from synthmap.models.common import BaseModel, IPFSURI, GenericURI, GenericURL, MD5Hex
 from synthmap.log.logger import getLogger
 
@@ -200,7 +201,7 @@ class SFMScene(BaseModel):
     features: Dict[int, List[Feature]]
     landmarks: List[Landmark]
 
-    def colmap2SFMScene(project):
+    def colmap2SFMScene(colmap_scene):
         return SFMScene(
             views=views,
             intrinsics=intrinsics,
@@ -239,6 +240,9 @@ class Workspace(BaseModel):
     imageViews: Optional[Dict[int, ImageView]] = None
     entities: Optional[Dict[int, Entity]] = None
     imageEntities: Optional[List[ImageEntities]] = None
+    colmapScenes: Optional[Dict[int, ColmapScene]] = None
+    aliceScenes: Optional[Dict[int, str]] = None  # AliceScene.Scene]] = None
+    projectScenes: Optional[list] = None
     sessions: Optional[Dict[int, Session]] = None
     sessionImages: Optional[List[SessionImages]] = None
 
@@ -405,6 +409,25 @@ class Workspace(BaseModel):
                     )
                 )
         log.info(f"Extraction of {len(cls.imageEntities)} Entities from {cls.db_path}")
+
+    def load_ColmapScenes(cls):
+        log.debug(f"Attempt extraction of ColmapScenes from {cls.db_path}")
+        if not cls.colmapScenes:
+            cls.colmapScenes = {}
+        with sqlite3.connect(cls.db_path) as db:
+            for row in db.execute("""SELECT * FROM ColmapScenes"""):
+                cls.colmapScenes[row[0]] = ColmapScene(
+                    scene_id=row[0],
+                    cameras_path=row[1],
+                    images_path=row[2],
+                    points_path=row[3],
+                )
+        log.info(
+            f"Extraction of {len(cls.colmapScenes)} ColmapScenes from {cls.db_path}"
+        )
+
+    def load_AliceScenes(cls):
+        pass
 
     def load_Sessions(cls):
         log.debug(f"Attempt extraction of Sessions from {cls.db_path}")

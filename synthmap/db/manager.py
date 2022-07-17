@@ -73,6 +73,14 @@ schemas = {
         entity_id INT NOT NULL,
         tiles16 TEXT,
         bbox16 TEXT)""",
+    "ColmapScenes": """CREATE TABLE ColmapScenes (scene_id INTEGER PRIMARY KEY,
+        cameras_path TEXT,
+        images_path TEXT,
+        points_path TEXT,
+
+        UNIQUE(cameras_path, images_path, points_path))""",
+    "projectScenes": """CREATE TABLE projectScenes(scene_id INT NOT NULL,
+        project_id INT NOT NULL)""",
     "sessions": """CREATE TABLE Sessions(session_id INTEGER PRIMARY KEY,
         orig_uri TEXT NOT NULL,
         label TEXT,
@@ -186,14 +194,13 @@ def insert_project(db: sqlite3.Connection, project_data: CreateProject) -> None:
     project_data["created"] = str(datetime.utcnow())
     log.debug(f"Attempt project creation: {project_data['orig_uri']}")
     db.execute(stmt_proj_insert, project_data)
-    project_data["project_id"] = db.execute(
+    project_id = db.execute(
         """SELECT project_id FROM Projects
         WHERE orig_uri=?""",
         [project_data["orig_uri"]],
     ).fetchone()["project_id"]
-    log.info(
-        f"Created project {project_data['project_id']} based on {project_data['orig_uri']}"
-    )
+    project_data["project_id"] = project_id
+    log.info(f"Created project {project_id} based on {project_data['orig_uri']}")
     if project_data["project_type"] == "colmap":
         db.execute(stmt_colmap_insert, project_data)
     elif project_data["project_type"] == "alice":
@@ -201,6 +208,7 @@ def insert_project(db: sqlite3.Connection, project_data: CreateProject) -> None:
     else:
         log.error(f"Invalid project_type: {project_data['project_type']}")
         raise ValueError
+    return project_id
 
 
 def list_projects(db: sqlite3.Connection) -> List[synthmodels.CommonProject]:
@@ -458,6 +466,32 @@ def get_entity_images(db: sqlite3.Connection, entity_id: int):
     INNER JOIN imageEntities ON imageEntities.image_id = imageFiles.file_id
     WHERE imageEntities.entity_id=?"""
     return db.execute(stmt, [entity_id]).fetchall()
+
+
+###
+#
+# Scene Management
+#
+###
+
+
+def insert_scene(db: sqlite3.Connection, project_id: int, scene_data):
+    stmt_scene_insert = """INSERT OR IGNORE INTO ColmapScenes
+    (cameras_path, images_path, points_path)
+    VALUES (:cameras_path, :images_path, :points_path)"""
+    scene_data = [str(i) for i in scene_data]
+    db.execute(stmt_scene_insert, scene_data)
+    scene_id = db.execute(
+        """SELECT scene_id FROM ColmapScenes
+    WHERE cameras_path=:cameras_path AND images_path=:images_path AND points_path=:points_path""",
+        scene_data,
+    ).fetchone()["scene_id"]
+    db.execute(
+        """INSERT OR IGNORE INTO projectScenes
+        (scene_id, project_id)
+        VALUES (?, ?)""",
+        [scene_id, project_id],
+    )
 
 
 ###

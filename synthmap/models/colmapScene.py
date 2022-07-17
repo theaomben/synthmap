@@ -58,6 +58,7 @@ class Landmark(BaseModel):
 
 
 class Scene(BaseModel):
+    scene_id: Optional[int]
     cameras_path: str
     cameras: Optional[Dict[int, Camera]]
     images_path: str

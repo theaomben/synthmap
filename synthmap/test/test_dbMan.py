@@ -19,6 +19,7 @@ class TestConnectionCreation:
             "Projects",
             "AliceProjects",
             "ColmapProjects",
+            "ColmapScenes",
             "Sessions",
             "Users",
             "imageEntities",
@@ -26,6 +27,7 @@ class TestConnectionCreation:
             "imageViews",
             "projectImages",
             "sessionImages",
+            "projectScenes",
         ]
         db_man.setup_db(memconn)
         cursor = memconn.execute("SELECT name FROM sqlite_master WHERE type='table'")

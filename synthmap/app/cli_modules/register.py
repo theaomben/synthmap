@@ -2,6 +2,7 @@
 from glob import glob
 import itertools
 import os
+from pathlib import Path
 
 import rich_click as click  # import click
 
@@ -71,15 +72,19 @@ def seek_projects(ctx, filename, extractor_fn, model):
     under the root folder (see `cli register --root-folder`)."""
     q_string = os.path.join(ctx.obj["register_root"], f"**\\{filename}")
     for path in glob(q_string, recursive=True):
+        excluded = False
         for exclude in ctx.obj["exclude_folders"]:
             if exclude in path:
-                continue
+                excluded = True
+                break
+        if excluded:
+            continue
         data = extractor_fn(path)
-        if not "label" in data:
+        if not data:
+            continue
+        if data and not "label" in data:
             data["label"] = data.get("project_file") or data.get("file_path")
-        log.debug(
-            f"Found project data {data.get('project_file') or data.get('file_path') or data}"
-        )
+        log.debug(f"Found project data {data}")
         m = model(**data)
         yield m
 
@@ -99,19 +104,26 @@ def projects(ctx, project_type):
     AliceVision: sfm.json"""
     candidates = []
     if project_type in ["all", "colmap"]:
-        log.info(f"Seeking Colmap Projects under {ctx.obj['register_root']}")
+        log.debug(f"Seeking Colmap Projects under {ctx.obj['register_root']}")
         candidates += seek_projects(
             ctx, "project.ini", colmapParser.get_proj_dirs, colmodels.ColmapProject
         )
     if project_type in ["all", "alice"]:
-        log.info(f"Seeking AliceVision Projects under {ctx.obj['register_root']}")
+        log.debug(f"Seeking AliceVision Projects under {ctx.obj['register_root']}")
         candidates += seek_projects(
             ctx, "sfm.json", aliceParser.parse_sfm, alicemodels.AliceProject
         )
-    log.info(f"Found {len(candidates)} projects under {ctx.obj['register_root']}")
+    log.debug(f"Found {len(candidates)} projects under {ctx.obj['register_root']}")
     with db_man.mk_conn(ctx.obj["db_path"]) as db:
         for project in candidates:
-            db_man.insert_project(db, project)
+            project = {k: str(v) for k, v in dict(project).items()}
+            project["project_file"] = project["label"]
+            project_id = db_man.insert_project(db, project)
+            colmapParser.register_project_images(db, project_id)
+            for model_data in colmapParser.get_model_files(
+                Path(project["project_file"]).parent.absolute()
+            ):
+                db_man.insert_scene(db, project_id, model_data)
 
 
 @register.command()

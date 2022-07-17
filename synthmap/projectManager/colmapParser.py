@@ -15,7 +15,7 @@ import numpy as np
 from pydantic import BaseModel, conint
 
 
-from synthmap.db.manager import mk_conn, insert_project, insert_image
+from synthmap.db import manager as db_man
 from synthmap.log.logger import getLogger
 
 
@@ -71,11 +71,16 @@ def get_proj_dirs(proj_path):
     data = {"project_file": proj_path, "project_type": "colmap"}
     with open(proj_path, "r") as fd:
         for line in fd.readlines():
+            line = line.strip()
             if line.startswith("database_path"):
                 k, v = line.split("=")
+                if not v:
+                    return None
                 data["db_path"] = v.strip()
             elif line.startswith("image_path"):
                 k, v = line.split("=")
+                if not v:
+                    return None
                 data[k] = v.strip()
             cnt += 1
             if cnt > 10:
@@ -83,12 +88,28 @@ def get_proj_dirs(proj_path):
     return data
 
 
+def get_model_files(project_root_path: Path):
+    file_paths = [
+        Path(i) for i in glob(os.path.join(project_root_path, "*.txt"), recursive=True)
+    ]
+    log.debug(f"Found files that could be part of a model {file_paths}")
+    file_tree = defaultdict(list)
+    for fp in file_paths:
+        dirp = fp.parent.absolute()
+        file_tree[dirp].append(fp)
+    for dirp, file_names in file_tree.items():
+        if len(file_names) == 3:
+            model_files = {i.name.replace(".txt", "_path"): i for i in file_names}
+            if set(model_files.keys()) == set(
+                ["cameras_path", "images_path", "points3D_path"]
+            ):
+                yield file_names
+
+
 def update_project_paths(project_path, database_path=None, image_path=None):
     """Amends a Colmap project.ini to include the given paths.
     Copies the original file with an additional ".bak" suffix before affecting changes."""
-    print(project_path, database_path, image_path)
-    if not database_path and not image_path:
-        return None
+    assert database_path and image_path
     project_bak = project_path.with_suffix(project_path.suffix + ".bak")
     # Don't overwrite the backup if it already exists, use it instead.
     if not os.path.exists(project_bak):
@@ -117,8 +138,13 @@ def find_projects(db, paths: List[Path] = list()):
     for i in projects:
         if not "label" in i:
             i["label"] = i["project_file"]
-        print("project data: ", i)
-        insert_project(db, i)
+        project_id = db_man.insert_project(db, i)
+        log.debug(
+            f"Searching for models under {Path(i['project_file']).parent.absolute()}"
+        )
+        for model_data in get_model_files(Path(i["project_file"]).parent.absolute()):
+            scene_id = db_man.insert_scene(db, project_id, model_data)
+            log.debug(f"...found model.")
     db.commit()
 
 
@@ -130,7 +156,7 @@ def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
     stmt_add_image_to_project = """INSERT OR IGNORE INTO projectImages
         (file_id, project_id, project_image_id)
         VALUES (?, ?, ?)"""
-    with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
+    with db_man.mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         try:
             num_images = proj_db.execute(
                 "SELECT count(*) AS cnt FROM Images"
@@ -144,7 +170,7 @@ def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
             return None
         for row in proj_db.execute("""SELECT image_id, name FROM Images"""):
             file_path = os.path.join(proj_data["image_path"], row["name"])
-            syn_image_id = insert_image(db, file_path)
+            syn_image_id = db_man.insert_image(db, file_path)
             db.execute(
                 stmt_add_image_to_project, [syn_image_id, project_id, row["image_id"]]
             )
@@ -174,7 +200,7 @@ def list_image_matches(
     for project_data in db.execute(stmt, [image_id]):
         project_id = project_data["project_id"]
         project_image_id = project_data["project_image_id"]
-        with mk_conn(project_data["db_path"], read_only=True) as proj_db:
+        with db_man.mk_conn(project_data["db_path"], read_only=True) as proj_db:
             kps = proj_db.execute(
                 """SELECT rows, cols, data FROM Keypoints WHERE image_id=?""",
                 [project_image_id],
@@ -265,7 +291,7 @@ def get_image_descriptors(db, file_id):
         WHERE file_id=?""",
         [file_id],
     ).fetchone()
-    with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
+    with db_man.mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         descriptor = proj_db.execute(
             """SELECT * FROM Descriptors WHERE image_id=?""",
             [proj_data["project_image_id"]],
@@ -346,7 +372,7 @@ def get_imageset_data(db, project_id: int, file_ids: list):
     ).fetchone()
     proj_image_id_set = set([gid2pid(i) for i in file_ids])
     print("\t", proj_data["db_path"])
-    with mk_conn(proj_data["db_path"], read_only=True) as proj_db:
+    with db_man.mk_conn(proj_data["db_path"], read_only=True) as proj_db:
         img_ids_str = ", ".join(map(str, proj_image_id_set))
         stmt = """SELECT images.image_id AS project_image_id, images.name, images.camera_id, images.prior_qw, images.prior_qx, images.prior_qy, images.prior_qz, images.prior_tx, images.prior_ty, images.prior_tz,
     cameras.model, cameras.width, cameras.height, cameras.params, cameras.prior_focal_length,

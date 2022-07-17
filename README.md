@@ -3,10 +3,12 @@
 **TL,DR: Makes & merges 3d maps from pictures. EARLY DEVELOPMENT: Here be dragons. Works On My Machine(tm). Updates Soon(tm²).**
 
 This repository demonstrates the Synthmap toolkit which facilitates an open, portable & shardable photogrammetric mapping workflow. It is a python package providing a backend application on top of SQLite for working with images and geo-data through command-line and HTTP interfaces. A separate project (linkme) provides an HTML5/cljs frontend GUI for visual elements and input.
+It is similar to programs like [Colmap](http://colmap.github.io/), [Meshroom](https://alicevision.org/) or [OpenDroneMap](https://www.opendronemap.org/) and in fact wraps the first two.
 The goal of the application is to index:
 
 - Images (local, HTTP or IPFS) from which to create 3d point clouds or meshes through Structure from Motion (*SfM*).
-- Entities (anything that can have static-ish coordinates or an address) to georeference or reproject the associated data.
+- Scenes as 3d models of points and surfaces from the pictured objects.
+- Entities (anything that can have static-ish coordinates or an address) to georeference or reproject the associated geometry data.
 We can then merge/shard/share the data and reuse or extend prior computations.
 
 
@@ -40,7 +42,7 @@ Ultimately, we end up connecting and translating the backends' output into a com
 
 Through standardisation of these items' format, we can re-use them across projects and thus share them in order to constitute a collaborative repository of physical entities with their 2d & 3d likeness. The system ought to handle import/export in a configurable handful of common formats, and optionally use a local IPFS gateway to publish or fetch content.
 
-This software is licensed under BSD 4-clause, see the terms in `LICENSE.md`
+This software is licensed under BSD 4-clause, see the terms in `LICENSE.md` and those of any backend you use.
 
 ## Run a local dev instance
 
@@ -60,7 +62,7 @@ source venv/bin/activate OR (on windows) venv\Scripts\activate
 ...
 
 
-# To be able to use this virtualenv from the "Kernel" menu in jupyter notebooks:
+# Optional: To be able to use this virtualenv from the "Kernel" menu in jupyter notebooks:
 (venv) python -m pip install ipykernel
 (venv) ipython kernel install --name=Synthmap
 
