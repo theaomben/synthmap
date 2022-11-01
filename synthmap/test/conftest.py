@@ -86,10 +86,12 @@ def sample_entity_data():
 
 @pytest.fixture(scope="module")
 def expected_projectImages():
+    sample_path = TEST_ROOT / "sample_data" / "sample_big_images"
+    img2path = lambda x: str(sample_path / x)
     return [
         {
             "file_id": 1,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMGP0751.JPG",
+            "file_path": img2path("IMGP0751.JPG"),
             "md5": "4bb344e1284b506b19f606ce6c392cd3",
             "ipfs": None,
             "w": 3000,
@@ -97,7 +99,7 @@ def expected_projectImages():
         },
         {
             "file_id": 2,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMGP0763.JPG",
+            "file_path": img2path("IMGP0763.JPG"),
             "md5": "41124998f2e131494ab62604870f0947",
             "ipfs": None,
             "w": 3000,
@@ -105,7 +107,7 @@ def expected_projectImages():
         },
         {
             "file_id": 3,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMGP0787.JPG",
+            "file_path": img2path("IMGP0787.JPG"),
             "md5": "15d35a71054bd682b710e532b6cc31bd",
             "ipfs": None,
             "w": 3000,
@@ -113,7 +115,7 @@ def expected_projectImages():
         },
         {
             "file_id": 4,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMGP0796.JPG",
+            "file_path": img2path("IMGP0796.JPG"),
             "md5": "e4fccacc64a2b49b918eec7da2dc2dd7",
             "ipfs": None,
             "w": 3000,
@@ -121,7 +123,7 @@ def expected_projectImages():
         },
         {
             "file_id": 5,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMGP0877.JPG",
+            "file_path": img2path("IMGP0877.JPG"),
             "md5": "fbc86c099952aa962da9dbb050fad638",
             "ipfs": None,
             "w": 3000,
@@ -129,7 +131,7 @@ def expected_projectImages():
         },
         {
             "file_id": 6,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4845.JPG",
+            "file_path": img2path("IMG_4845.JPG"),
             "md5": "3e98f72249e9eeca84c6acc418d01767",
             "ipfs": None,
             "w": 2592,
@@ -137,7 +139,7 @@ def expected_projectImages():
         },
         {
             "file_id": 7,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4846.JPG",
+            "file_path": img2path("IMG_4846.JPG"),
             "md5": "7a5c4321a598a07514cc0d0d2c3adefe",
             "ipfs": None,
             "w": 2592,
@@ -145,7 +147,7 @@ def expected_projectImages():
         },
         {
             "file_id": 8,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4848.JPG",
+            "file_path": img2path("IMG_4848.JPG"),
             "md5": "250e31f9326d8a2b86e01c0096e525ab",
             "ipfs": None,
             "w": 2592,
@@ -153,7 +155,7 @@ def expected_projectImages():
         },
         {
             "file_id": 9,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4854.JPG",
+            "file_path": img2path("IMG_4854.JPG"),
             "md5": "939e8dd46a1d3b724248179aa464accb",
             "ipfs": None,
             "w": 2592,
@@ -161,7 +163,7 @@ def expected_projectImages():
         },
         {
             "file_id": 10,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4856.JPG",
+            "file_path": img2path("IMG_4856.JPG"),
             "md5": "c89ac823c4573abad4d1c57eadcc0fae",
             "ipfs": None,
             "w": 2592,
@@ -169,7 +171,7 @@ def expected_projectImages():
         },
         {
             "file_id": 11,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4861.JPG",
+            "file_path": img2path("IMG_4861.JPG"),
             "md5": "23c791a6ca17607651fab5fa7f9e8896",
             "ipfs": None,
             "w": 2592,
@@ -177,7 +179,7 @@ def expected_projectImages():
         },
         {
             "file_id": 12,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4862.JPG",
+            "file_path": img2path("IMG_4862.JPG"),
             "md5": "9b272ef29219a807ef78fd2c8a2e9f43",
             "ipfs": None,
             "w": 2592,
@@ -185,7 +187,7 @@ def expected_projectImages():
         },
         {
             "file_id": 13,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4863.JPG",
+            "file_path": img2path("IMG_4863.JPG"),
             "md5": "dab34469e06ef020bdcaac69c7dc5c6b",
             "ipfs": None,
             "w": 2592,
@@ -193,7 +195,7 @@ def expected_projectImages():
         },
         {
             "file_id": 14,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4864.JPG",
+            "file_path": img2path("IMG_4864.JPG"),
             "md5": "5deebffc5ff42ee59407a53b2d81518d",
             "ipfs": None,
             "w": 2592,
@@ -201,7 +203,7 @@ def expected_projectImages():
         },
         {
             "file_id": 15,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4870.JPG",
+            "file_path": img2path("IMG_4870.JPG"),
             "md5": "5ccee996cb3a0250cd1ec98d5d5b5abc",
             "ipfs": None,
             "w": 2592,
@@ -209,7 +211,7 @@ def expected_projectImages():
         },
         {
             "file_id": 16,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4872.JPG",
+            "file_path": img2path("IMG_4872.JPG"),
             "md5": "ece8f66bdb00b25bc3408b7adbfd316d",
             "ipfs": None,
             "w": 2592,
@@ -217,7 +219,7 @@ def expected_projectImages():
         },
         {
             "file_id": 17,
-            "file_path": "c:\\Code\\github\\synthmap\\synthmap\\test\\sample_data\\sample_big_images\\IMG_4880.JPG",
+            "file_path": img2path("IMG_4880.JPG"),
             "md5": "f70797c4e617575552cecfe30a6dd1c5",
             "ipfs": None,
             "w": 2592,

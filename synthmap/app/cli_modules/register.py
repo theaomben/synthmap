@@ -71,7 +71,8 @@ def seek_projects(ctx, filename, extractor_fn, model):
     """Applies the specified extractor function to all files matching the given filename
     under the root folder (see `cli register --root-folder`)."""
     q_string = os.path.join(ctx.obj["register_root"], f"**\\{filename}")
-    for path in glob(q_string, recursive=True):
+    q_string2 = os.path.join(ctx.obj["register_root"], f"**/{filename}")
+    for path in glob(q_string2, recursive=True):
         excluded = False
         for exclude in ctx.obj["exclude_folders"]:
             if exclude in path:
