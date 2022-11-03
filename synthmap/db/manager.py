@@ -301,7 +301,7 @@ def insert_image(
             """SELECT id FROM Images WHERE orig_uri=?""", [orig_uri]
         ).fetchone()["id"]
     w, h = imgproc.get_size(file_path)
-    db.execute(stmt_add_file, [file_path, md5, orig_ipfs, w, h])
+    db.execute(stmt_add_file, [str(file_path), md5, orig_ipfs, w, h])
     file_id = db.execute(
         """SELECT file_id FROM imageFiles WHERE md5=?""", [md5]
     ).fetchone()["file_id"]

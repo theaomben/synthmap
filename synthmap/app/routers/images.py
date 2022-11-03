@@ -15,8 +15,8 @@ from synthmap.projectManager import colmapParser
 imagerouter = APIRouter(prefix="/images", tags=["Images"])
 
 
-@imagerouter.get("/", response_model=List[Image])
-def list_images() -> List[Image]:
+@imagerouter.get("/")#, response_model=List[Image])
+def list_images():# -> List[Image]:
     """Not Implemented. Returns all registered Images"""
     pass
 

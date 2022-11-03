@@ -131,7 +131,7 @@ def find_projects(db, paths: List[Path] = list()):
     Creates a Project in <db> for each new one found."""
     projects = []
     for p in paths:
-        q_string = os.path.join(p, "**\\project.ini")
+        q_string = str(p / "**" /"project.ini")
         log.debug(f"Searching for projects under {q_string}")
         projects += [get_proj_dirs(i) for i in glob(q_string, recursive=True)]
     log.debug(f"...found {len(projects)} projects")
@@ -148,7 +148,7 @@ def find_projects(db, paths: List[Path] = list()):
     db.commit()
 
 
-def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
+def register_project_images(db: sqlite3.Connection, project_id: int, project_path_prefix: Path=None) -> bool:
     """Attempts to register all images listed in the Project."""
     stmt_get_proj_data = """SELECT db_path, image_path FROM ColmapProjects
         WHERE project_id=?"""
@@ -156,7 +156,11 @@ def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
     stmt_add_image_to_project = """INSERT OR IGNORE INTO projectImages
         (file_id, project_id, project_image_id)
         VALUES (?, ?, ?)"""
-    with db_man.mk_conn(proj_data["db_path"], read_only=True) as proj_db:
+    if project_path_prefix:
+        proj_db_path = project_path_prefix / proj_data["db_path"].replace('\\', '/')
+    else:
+        proj_db_path = proj_data["db_path"].replace('\\', '/')
+    with db_man.mk_conn(proj_db_path, read_only=True) as proj_db:
         try:
             num_images = proj_db.execute(
                 "SELECT count(*) AS cnt FROM Images"
@@ -169,7 +173,10 @@ def register_project_images(db: sqlite3.Connection, project_id: int) -> bool:
         if num_in_db >= num_images:
             return None
         for row in proj_db.execute("""SELECT image_id, name FROM Images"""):
-            file_path = os.path.join(proj_data["image_path"], row["name"])
+            if project_path_prefix:
+                file_path = project_path_prefix / Path(proj_data["image_path"].replace('\\', '/')) / row["name"]
+            else:
+                file_path = Path(proj_data["image_path"].replace('\\', '/')) / row["name"]
             syn_image_id = db_man.insert_image(db, file_path)
             db.execute(
                 stmt_add_image_to_project, [syn_image_id, project_id, row["image_id"]]

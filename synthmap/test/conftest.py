@@ -245,7 +245,8 @@ def setup_db(sample_project_data, sample_entity_data):
         # for sample in sample_project_data["known_good"]:
         #    db_man.insert_project(initialised_db, sample)
         for project in db_man.list_projects(initialised_db):
-            colmapParser.register_project_images(initialised_db, project["project_id"])
+            print('### Project: ' + str(project))
+            colmapParser.register_project_images(initialised_db, project["project_id"], project_path_prefix=Path("/home/ben/code"))
         for entity in sample_entity_data:
             db_man.insert_entity(initialised_db, entity)
         known_data = {1: [1, 6, 12, 16], 2: [1, 13, 14]}

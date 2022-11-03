@@ -2,6 +2,7 @@
 from datetime import timedelta
 import math
 import os
+from pathlib import Path
 from typing import Tuple
 
 import cv2
@@ -14,9 +15,9 @@ from synthmap.log.logger import getLogger
 log = getLogger(__name__)
 
 
-def get_size(image_path) -> Tuple[int, int]:
+def get_size(image_path: Path) -> Tuple[int, int]:
     """Returns (width, height) for this image."""
-    y, x, depth = cv2.imread(image_path).shape
+    y, x, depth = cv2.imread(str(image_path)).shape
     return x, y
 
 
